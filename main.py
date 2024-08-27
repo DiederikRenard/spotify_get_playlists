@@ -28,6 +28,28 @@ app = Flask(__name__)
 app.secret_key = '5444521123544jscsk'
 
 
+def get_auth_token(token):
+    return {"Authorization": "Bearer " + token}
+
+
+def search_for_playlist(token, playlist_ids):
+    for playlist_id in playlist_ids:
+        url = f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks"
+        headers = get_auth_token(token)
+        # query = f"?q={search_query}&type={search_type}&limit=1"
+
+        # query_url = url
+        result = get(url, headers=headers)
+        json_result = json.loads(result.content)
+        track_list = json_result['items']
+        clean_names = []
+
+        with open('track-artists.txt', 'a', encoding='utf-8') as file:
+            for track in track_list:
+                file.write(f"{track['track']['name']} - {track['track']['artists'][0]['name']} \n")
+
+
+
 @app.route('/')
 def index():
     return 'Welcome to my Spotify App!<a href="/login">Login</a>'
@@ -65,7 +87,6 @@ def callback():
 
         response = post(url=TOKEN_URL, data=req_body)
         token_info = response.json()
-        print(token_info)
         session['access_token'] = token_info['access_token']
         session['refresh_token'] = token_info['refresh_token']
         session['expires_at'] = datetime.now().timestamp() + token_info['expires_in']
@@ -88,6 +109,11 @@ def get_playlists():
     response = get(API_BASE_URL + 'me/playlists', headers=headers)
 
     playlists = response.json()
+
+    playlist_ids = []
+    for playlist in playlists['items']:
+        playlist_ids.append(playlist['id'])
+    search_for_playlist(session['access_token'], playlist_ids)
 
     return jsonify(playlists)
 
@@ -137,28 +163,16 @@ if __name__ == '__main__':
 
 
 # Function for getting an auth_token
-def get_auth_token(token):
-    return {"Authorization": "Bearer " + token}
 
 
 
 
 
-def search_for_playlist(token, search_query, search_type):
-    url = "https://api.spotify.com/v1/me/playlists"
-    headers = get_auth_token(token)
-    # query = f"?q={search_query}&type={search_type}&limit=1"
 
-    query_url = url
-    result = get(query_url, headers=headers)
-    json_result = json.loads(result.content)
-    print(json_result)
-
-
-token1 = get_token()
+# token1 = get_token()
 # auth_code = get_auth_code()
 # print(auth_code)
-print(search_for_playlist(token1, "Energy-Metal-Faolan", "playlist"))
+# print(search_for_playlist(token1, "Energy-Metal-Faolan", "playlist"))
 
 # TO-DO: USE API TO MAKE LIST OF SONGS: ARTIST
 
